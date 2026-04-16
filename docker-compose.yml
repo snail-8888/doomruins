@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: doomruins-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=doomruins
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: doomruins-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: doomruins-server
+    ports:
+      - "3000:3000"
+      - "2567:2567"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/doomruins
+      - REDIS_URI=redis://redis:6379
+      - JWT_SECRET=your-production-secret-change-me
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  redis_data:
