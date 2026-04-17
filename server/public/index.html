@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>末日废墟 - 登录</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2b 100%);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      color: #e0e0e0;
+    }
+    .container { width: 420px; max-width: 95vw; }
+    .logo { text-align: center; margin-bottom: 40px; }
+    .logo h1 {
+      font-size: 36px; color: #ff4444; text-shadow: 0 0 20px rgba(255,68,68,0.5);
+      letter-spacing: 8px; margin-bottom: 8px;
+    }
+    .logo p { color: #888; font-size: 14px; letter-spacing: 4px; }
+    .card {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 32px; backdrop-filter: blur(10px);
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 14px; color: #aaa; margin-bottom: 6px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+      color: #fff; font-size: 15px; outline: none; transition: border-color 0.3s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #ff4444; }
+    .form-group select option { background: #1a1a3e; color: #fff; }
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 8px;
+      font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+      letter-spacing: 2px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #ff4444, #cc0000); color: #fff;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255,68,68,0.4); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-guest {
+      background: rgba(255,255,255,0.1); color: #ccc; margin-top: 12px;
+    }
+    .btn-guest:hover { background: rgba(255,255,255,0.15); }
+    .divider { text-align: center; margin: 20px 0; color: #666; font-size: 13px; }
+    .status {
+      text-align: center; padding: 10px; border-radius: 6px; margin-bottom: 16px;
+      font-size: 13px; display: none;
+    }
+    .status.error { display: block; background: rgba(255,68,68,0.15); color: #ff6666; border: 1px solid rgba(255,68,68,0.3); }
+    .status.success { display: block; background: rgba(68,255,68,0.15); color: #66ff66; border: 1px solid rgba(68,255,68,0.3); }
+    .status.loading { display: block; background: rgba(68,68,255,0.15); color: #6666ff; border: 1px solid rgba(68,68,255,0.3); }
+    .server-status { text-align: center; margin-top: 20px; font-size: 12px; color: #555; }
+    .server-status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+    .dot.online { background: #44ff44; }
+    .dot.offline { background: #ff4444; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>末日废墟</h1>
+      <p>DOOM RUINS</p>
+    </div>
+    <div class="card">
+      <div id="status" class="status"></div>
+
+      <div class="form-group">
+        <label>登录平台</label>
+        <select id="platform">
+          <option value="web">Web浏览器</option>
+          <option value="wechat">微信小程序</option>
+          <option value="android">Android</option>
+          <option value="ios">iOS</option>
+          <option value="harmony">鸿蒙</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>昵称（注册时使用）</label>
+        <input type="text" id="nickname" placeholder="输入你的昵称" maxlength="20">
+      </div>
+
+      <button id="loginBtn" class="btn btn-primary" onclick="handleLogin()">登录 / 注册</button>
+
+      <div class="divider">— 或者 —</div>
+
+      <button class="btn btn-guest" onclick="handleGuestLogin()">游客登录</button>
+    </div>
+
+    <div class="server-status">
+      <span id="serverDot" class="dot offline"></span>
+      <span id="serverText">正在连接服务器...</span>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let deviceId = localStorage.getItem('deviceId');
+    if (!deviceId) {
+      deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      localStorage.setItem('deviceId', deviceId);
+    }
+
+    // 检查服务器状态
+    async function checkServer() {
+      try {
+        const res = await fetch(API_BASE + '/health');
+        const data = await res.json();
+        document.getElementById('serverDot').className = 'dot online';
+        document.getElementById('serverText').textContent = `服务器在线 - ${data.game} v${data.version}`;
+      } catch {
+        document.getElementById('serverDot').className = 'dot offline';
+        document.getElementById('serverText').textContent = '服务器离线';
+      }
+    }
+
+    // 自动登录检查
+    async function checkAutoLogin() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      showStatus('正在自动登录...', 'loading');
+      try {
+        const res = await fetch(API_BASE + '/api/auth/verify', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (data.success) {
+          showStatus('自动登录成功！', 'success');
+          setTimeout(() => enterGame(token), 800);
+          return;
+        }
+      } catch {}
+      localStorage.removeItem('token');
+    }
+
+    // 登录/注册
+    async function handleLogin() {
+      const platform = document.getElementById('platform').value;
+      const nickname = document.getElementById('nickname').value.trim();
+
+      if (!nickname) {
+        showStatus('请输入昵称', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+      showStatus('正在登录...', 'loading');
+
+      try {
+        // 先尝试登录
+        let res = await fetch(API_BASE + '/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform, deviceId })
+        });
+        let data = await res.json();
+
+        if (!data.success) {
+          // 登录失败，尝试注册
+          showStatus('正在注册新账号...', 'loading');
+          res = await fetch(API_BASE + '/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platform, deviceId, nickname })
+          });
+          data = await res.json();
+        }
+
+        if (data.success) {
+          localStorage.setItem('token', data.data.token);
+          localStorage.setItem('uid', data.data.uid);
+          showStatus(`${data.data.isNewUser ? '注册' : '登录'}成功！欢迎 ${data.data.nickname}`, 'success');
+          setTimeout(() => enterGame(data.data.token), 800);
+        } else {
+          showStatus(data.error || '登录失败', 'error');
+        }
+      } catch (err) {
+        showStatus('网络错误: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '登录 / 注册';
+      }
+    }
+
+    // 游客登录
+    async function handleGuestLogin() {
+      showStatus('正在以游客身份登录...', 'loading');
+      try {
+        const res = await fetch(API_BASE + '/api/auth/guest', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          localStorage.setItem('token', data.data.token);
+          localStorage.setItem('uid', data.data.uid);
+          showStatus('游客登录成功！欢迎 ' + data.data.nickname, 'success');
+          setTimeout(() => enterGame(data.data.token), 800);
+        } else {
+          showStatus(data.error || '登录失败', 'error');
+        }
+      } catch (err) {
+        showStatus('网络错误: ' + err.message, 'error');
+      }
+    }
+
+    // 进入游戏
+    function enterGame(token) {
+      window.location.href = 'main.html?token=' + encodeURIComponent(token);
+    }
+
+    // 状态显示
+    function showStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status ' + type;
+    }
+
+    // 初始化
+    checkServer();
+    checkAutoLogin();
+    setInterval(checkServer, 30000);
+  </script>
+</body>
+</html>

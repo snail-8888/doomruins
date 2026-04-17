@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>末日废墟 - 主城</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2b 100%);
+      min-height: 100vh; color: #e0e0e0;
+    }
+    .header {
+      background: rgba(0,0,0,0.5); border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .header h1 { font-size: 20px; color: #ff4444; letter-spacing: 4px; }
+    .user-info { display: flex; align-items: center; gap: 16px; }
+    .user-info .nickname { color: #ffd700; font-weight: bold; }
+    .user-info .level { background: rgba(255,68,68,0.2); padding: 4px 12px; border-radius: 12px; font-size: 13px; color: #ff6666; }
+    .btn-logout {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: #aaa; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .btn-logout:hover { background: rgba(255,68,68,0.2); color: #ff6666; }
+
+    .currency-bar {
+      background: rgba(0,0,0,0.3); padding: 12px 24px;
+      display: flex; gap: 20px; flex-wrap: wrap;
+    }
+    .currency-item { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+    .currency-icon { width: 20px; height: 20px; border-radius: 50%; }
+    .currency-icon.gold { background: linear-gradient(135deg, #ffd700, #ff8c00); }
+    .currency-icon.diamond { background: linear-gradient(135deg, #00bfff, #0066ff); }
+    .currency-icon.beer { background: linear-gradient(135deg, #ff6600, #cc3300); }
+    .currency-icon.bw { background: linear-gradient(135deg, #8800ff, #4400aa); }
+    .currency-icon.mc { background: linear-gradient(135deg, #ff0066, #cc0044); }
+
+    .content { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+    .section { margin-bottom: 32px; }
+    .section-title {
+      font-size: 18px; color: #ff4444; margin-bottom: 16px;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,68,68,0.3);
+      letter-spacing: 2px;
+    }
+
+    .hero-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .hero-card {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.3s;
+    }
+    .hero-card:hover { transform: translateY(-4px); border-color: rgba(255,68,68,0.5); box-shadow: 0 4px 20px rgba(255,68,68,0.2); }
+    .hero-name { font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+    .hero-faction { font-size: 12px; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
+    .hero-faction.red { background: rgba(255,68,68,0.2); color: #ff6666; }
+    .hero-faction.blue { background: rgba(68,68,255,0.2); color: #6666ff; }
+    .hero-faction.green { background: rgba(68,255,68,0.2); color: #66ff66; }
+    .hero-faction.yellow { background: rgba(255,255,68,0.2); color: #ffff66; }
+    .hero-faction.light { background: rgba(255,255,255,0.2); color: #fff; }
+    .hero-faction.dark { background: rgba(128,0,255,0.2); color: #aa66ff; }
+    .hero-faction.god { background: rgba(255,215,0,0.2); color: #ffd700; }
+    .hero-class { font-size: 12px; color: #888; margin-bottom: 8px; }
+    .hero-stats { font-size: 12px; color: #aaa; line-height: 1.6; }
+    .hero-quality { font-size: 12px; margin-top: 8px; }
+    .quality-5 { color: #ffd700; }
+    .quality-4 { color: #cc66ff; }
+    .quality-3 { color: #66ccff; }
+
+    .my-hero-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+    }
+    .my-hero-card {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,68,68,0.3);
+      border-radius: 10px; padding: 16px;
+    }
+    .my-hero-card .hero-name { color: #ffd700; }
+
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      color: #aaa; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .filter-btn.active { background: rgba(255,68,68,0.2); border-color: #ff4444; color: #ff6666; }
+    .filter-btn:hover { border-color: rgba(255,68,68,0.5); }
+
+    .loading { text-align: center; padding: 40px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>末日废墟</h1>
+    <div class="user-info">
+      <span class="nickname" id="nickname">加载中...</span>
+      <span class="level" id="level">Lv.1</span>
+      <button class="btn-logout" onclick="logout()">退出登录</button>
+    </div>
+  </div>
+
+  <div class="currency-bar" id="currencyBar">
+    <div class="currency-item"><span class="currency-icon gold"></span> 金币: <span id="gold">0</span></div>
+    <div class="currency-item"><span class="currency-icon diamond"></span> 钻石: <span id="diamond">0</span></div>
+    <div class="currency-item"><span class="currency-icon beer"></span> 啤酒: <span id="beer">0</span></div>
+    <div class="currency-item"><span class="currency-icon bw"></span> 黑水: <span id="blackWater">0</span></div>
+    <div class="currency-item"><span class="currency-icon mc"></span> 月度币: <span id="monthlyCoin">0</span></div>
+  </div>
+
+  <div class="content">
+    <!-- 我的英雄 -->
+    <div class="section">
+      <div class="section-title">⚔️ 我的英雄</div>
+      <div id="myHeroList" class="my-hero-grid">
+        <div class="loading">加载中...</div>
+      </div>
+    </div>
+
+    <!-- 英雄图鉴 -->
+    <div class="section">
+      <div class="section-title">📖 英雄图鉴</div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterHeroes('all')">全部</button>
+        <button class="filter-btn" onclick="filterHeroes('red')">红系</button>
+        <button class="filter-btn" onclick="filterHeroes('blue')">蓝系</button>
+        <button class="filter-btn" onclick="filterHeroes('green')">绿系</button>
+        <button class="filter-btn" onclick="filterHeroes('yellow')">黄系</button>
+        <button class="filter-btn" onclick="filterHeroes('light')">光系</button>
+        <button class="filter-btn" onclick="filterHeroes('dark')">暗系</button>
+        <button class="filter-btn" onclick="filterHeroes('god')">神系</button>
+      </div>
+      <div id="heroList" class="hero-grid">
+        <div class="loading">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const params = new URLSearchParams(window.location.search);
+    let token = params.get('token') || localStorage.getItem('token') || '';
+    let allHeroes = [];
+
+    const CLASS_MAP = { assassin: '刺客', mage: '法师', tank: '坦克', warrior: '战士', healer: '奶妈' };
+    const FACTION_MAP = { red: '红系', blue: '蓝系', green: '绿系', yellow: '黄系', light: '光系', dark: '暗系', god: '神系' };
+
+    // API请求封装
+    async function api(method, path, body) {
+      const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(API_BASE + path, opts);
+      return await res.json();
+    }
+
+    // 加载用户信息
+    async function loadUserInfo() {
+      try {
+        const data = await api('GET', '/api/user/info');
+        if (data.success) {
+          document.getElementById('nickname').textContent = data.data.nickname;
+          document.getElementById('level').textContent = 'Lv.' + data.data.level;
+          document.getElementById('gold').textContent = data.data.currency.gold.toLocaleString();
+          document.getElementById('diamond').textContent = data.data.currency.diamond;
+          document.getElementById('beer').textContent = data.data.currency.beer;
+          document.getElementById('blackWater').textContent = data.data.currency.blackWater;
+          document.getElementById('monthlyCoin').textContent = data.data.currency.monthlyCoin;
+        } else { logout(); }
+      } catch { logout(); }
+    }
+
+    // 加载我的英雄
+    async function loadMyHeroes() {
+      try {
+        const data = await api('GET', '/api/hero/list');
+        const el = document.getElementById('myHeroList');
+        if (data.success && data.data.length > 0) {
+          el.innerHTML = data.data.map(h => {
+            const hero = allHeroes.find(c => c.id === h.heroId);
+            const name = hero ? hero.name : h.heroId;
+            const faction = hero ? hero.faction : '';
+            return `<div class="my-hero-card">
+              <div class="hero-name">${name} Lv.${h.level}</div>
+              ${faction ? `<span class="hero-faction ${faction}">${FACTION_MAP[faction]}</span>` : ''}
+              <div class="hero-stats">
+                ❤️ ${h.stats.hp}/${h.stats.maxHp} | ⚔️ ${h.stats.atk} | 🛡️ ${h.stats.def}<br>
+                💨 ${h.stats.spd} | 🎯 ${(h.stats.critRate*100).toFixed(0)}%
+              </div>
+            </div>`;
+          }).join('');
+        } else {
+          el.innerHTML = '<div style="color:#666">还没有英雄，去图鉴召唤一个吧！</div>';
+        }
+      } catch { document.getElementById('myHeroList').innerHTML = '<div style="color:#f66">加载失败</div>'; }
+    }
+
+    // 加载英雄图鉴
+    async function loadHeroConfigs(faction = 'all') {
+      try {
+        const url = faction === 'all' ? '/api/hero/config' : '/api/hero/config?faction=' + faction;
+        const data = await api('GET', url);
+        const el = document.getElementById('heroList');
+        if (data.success) {
+          if (faction === 'all') allHeroes = data.data;
+          el.innerHTML = data.data.map(h => `
+            <div class="hero-card" onclick="summonHero('${h.id}', '${h.name}')">
+              <div class="hero-name">${h.name}</div>
+              <span class="hero-faction ${h.faction}">${FACTION_MAP[h.faction]}</span>
+              <span style="font-size:12px;color:#888;margin-left:8px">${CLASS_MAP[h.heroClass]}</span>
+              <div class="hero-quality quality-${h.quality}">${'★'.repeat(h.quality)}</div>
+              <div class="hero-stats">
+                ❤️ ${h.baseStats.hp} | ⚔️ ${h.baseStats.atk} | 🛡️ ${h.baseStats.def}<br>
+                💨 ${h.baseStats.spd} | 🎯 ${(h.baseStats.critRate*100).toFixed(0)}%
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch { document.getElementById('heroList').innerHTML = '<div style="color:#f66">加载失败</div>'; }
+    }
+
+    // 召唤英雄
+    async function summonHero(heroId, heroName) {
+      if (!confirm(`确认召唤 ${heroName}？`)) return;
+      try {
+        const data = await api('POST', '/api/hero/summon', { heroId });
+        if (data.success) {
+          alert(`🎉 召唤成功！获得 ${heroName}`);
+          loadMyHeroes();
+        } else {
+          alert('召唤失败: ' + data.error);
+        }
+      } catch (err) { alert('网络错误'); }
+    }
+
+    // 筛选英雄
+    function filterHeroes(faction) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      loadHeroConfigs(faction);
+    }
+
+    // 退出登录
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('uid');
+      window.location.href = 'index.html';
+    }
+
+    // 初始化
+    if (!token) { logout(); }
+    else {
+      localStorage.setItem('token', token);
+      loadHeroConfigs().then(() => {
+        loadUserInfo();
+        loadMyHeroes();
+      });
+    }
+  </script>
+</body>
+</html>

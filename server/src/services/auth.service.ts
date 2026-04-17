@@ -2,118 +2,69 @@ import { v4 as uuidv4 } from 'uuid';
 import { UserModel } from '../models/user.model';
 import { generateToken } from '../utils/auth';
 
-interface RegisterParams {
-  platform: string;
-  deviceId: string;
-  nickname: string;
-}
-
-interface LoginParams {
-  platform: string;
-  deviceId: string;
-}
-
 export class AuthService {
-  /**
-   * 用户注册
-   */
-  async register(params: RegisterParams) {
-    const { platform, deviceId, nickname } = params;
+  async register(params: { platform: string; deviceId: string; nickname?: string; password?: string }) {
+    const { platform, deviceId, nickname, password } = params;
 
     // 检查是否已存在
-    const existingUser = await UserModel.findOne({
-      'account.platform': platform,
-      'account.deviceId': deviceId,
-    });
-
-    if (existingUser) {
-      // 如果已存在，直接登录
-      return this.login({ platform, deviceId });
+    const existing = await UserModel.findOne({ platform, deviceId });
+    if (existing) {
+      return this.login({ platform, deviceId, password });
     }
 
-    // 创建新用户
     const uid = uuidv4();
     const user = await UserModel.create({
       uid,
-      nickname,
-      account: {
-        platform,
-        deviceId,
-        lastLogin: new Date(),
-        createdAt: new Date(),
-      },
+      nickname: nickname || `玩家${uid.slice(0, 6)}`,
+      platform,
+      deviceId,
+      password: password || undefined,
+      lastLogin: new Date(),
     });
 
-    // 生成 Token
     const token = generateToken({ uid, platform });
-
-    return {
-      uid,
-      nickname: user.nickname,
-      token,
-      isNewUser: true,
-    };
+    return { uid, nickname: user.nickname, token, isNewUser: true };
   }
 
-  /**
-   * 用户登录
-   */
-  async login(params: LoginParams) {
+  async login(params: { platform: string; deviceId: string; password?: string }) {
     const { platform, deviceId } = params;
+    const user = await UserModel.findOne({ platform, deviceId });
+    if (!user) throw new Error('用户不存在，请先注册');
 
-    // 查找用户
-    const user = await UserModel.findOne({
-      'account.platform': platform,
-      'account.deviceId': deviceId,
-    });
-
-    if (!user) {
-      throw new Error('用户不存在，请先注册');
-    }
-
-    // 更新最后登录时间
-    user.account.lastLogin = new Date();
+    user.lastLogin = new Date();
     await user.save();
 
-    // 生成 Token
     const token = generateToken({ uid: user.uid, platform });
-
-    return {
-      uid: user.uid,
-      nickname: user.nickname,
-      token,
-      isNewUser: false,
-    };
+    return { uid: user.uid, nickname: user.nickname, token, isNewUser: false, level: user.level, currency: user.currency };
   }
 
-  /**
-   * 游客登录
-   */
   async guestLogin() {
     const uid = uuidv4();
-    const platform = 'guest';
-    const deviceId = `guest_${Date.now()}`;
-
-    // 创建游客用户
     const user = await UserModel.create({
       uid,
       nickname: `游客${uid.slice(0, 6)}`,
-      account: {
-        platform,
-        deviceId,
-        lastLogin: new Date(),
-        createdAt: new Date(),
-      },
+      platform: 'guest',
+      deviceId: `guest_${Date.now()}`,
+      lastLogin: new Date(),
     });
 
-    // 生成 Token
-    const token = generateToken({ uid, platform });
+    const token = generateToken({ uid, platform: 'guest' });
+    return { uid, nickname: user.nickname, token, isNewUser: true };
+  }
 
-    return {
-      uid,
-      nickname: user.nickname,
-      token,
-      isNewUser: true,
-    };
+  async bindAccount(uid: string, params: { platform: string; deviceId: string; nickname?: string; password?: string }) {
+    const user = await UserModel.findOne({ uid });
+    if (!user) throw new Error('用户不存在');
+
+    if (user.platform !== 'guest') throw new Error('仅支持游客账号绑定');
+
+    user.platform = params.platform;
+    user.deviceId = params.deviceId;
+    if (params.nickname) user.nickname = params.nickname;
+    if (params.password) user.password = params.password;
+    await user.save();
+
+    const token = generateToken({ uid, platform: params.platform });
+    return { uid, nickname: user.nickname, token };
   }
 }

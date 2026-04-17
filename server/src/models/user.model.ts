@@ -1,16 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-// 用户文档接口
 export interface IUser extends Document {
   uid: string;
   nickname: string;
   avatar: string;
-  account: {
-    platform: string;
-    deviceId: string;
-    lastLogin: Date;
-    createdAt: Date;
-  };
+  platform: string;
+  deviceId: string;
+  password?: string;
   currency: {
     gold: number;
     diamond: number;
@@ -20,34 +16,22 @@ export interface IUser extends Document {
     monthlyCoin: number;
     blackCrystal: number;
   };
-  vip: {
-    level: number;
-    exp: number;
-    perks: string[];
-  };
+  vip: { level: number; exp: number };
   level: number;
   exp: number;
-  bagCapacity: {
-    heroes: number;
-    items: number;
-  };
+  lastLogin: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// 用户 Schema
 const UserSchema = new Schema<IUser>(
   {
     uid: { type: String, required: true, unique: true, index: true },
     nickname: { type: String, required: true, maxlength: 20 },
     avatar: { type: String, default: '' },
-
-    account: {
-      platform: { type: String, required: true },
-      deviceId: { type: String, required: true },
-      lastLogin: { type: Date, default: Date.now },
-      createdAt: { type: Date, default: Date.now },
-    },
+    platform: { type: String, required: true },
+    deviceId: { type: String, required: true },
+    password: { type: String },
 
     currency: {
       gold: { type: Number, default: 10000 },
@@ -62,24 +46,15 @@ const UserSchema = new Schema<IUser>(
     vip: {
       level: { type: Number, default: 0 },
       exp: { type: Number, default: 0 },
-      perks: [{ type: String }],
     },
 
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
-
-    bagCapacity: {
-      heroes: { type: Number, default: 100 },
-      items: { type: Number, default: 500 },
-    },
+    lastLogin: { type: Date, default: Date.now },
   },
-  {
-    timestamps: true,
-    collection: 'users',
-  }
+  { timestamps: true, collection: 'users' }
 );
 
-// 创建索引
-UserSchema.index({ 'account.platform': 1, 'account.deviceId': 1 });
+UserSchema.index({ platform: 1, deviceId: 1 });
 
 export const UserModel = mongoose.model<IUser>('User', UserSchema);
