@@ -4,9 +4,11 @@ import morgan from 'morgan';
 import { config } from './config';
 import { connectMongoDB } from './config/database';
 import { seedDatabase } from './config/seed';
+import { seedStageConfigs } from './config/stage-seed';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import heroRoutes from './routes/hero.routes';
+import battleRoutes from './routes/battle.routes';
 
 const app = express();
 
@@ -24,7 +26,7 @@ app.get('/health', (req, res) => {
     status: 'ok',
     time: new Date().toISOString(),
     game: config.game.name,
-    version: '1.0.0',
+    version: '1.1.0',
   });
 });
 
@@ -32,6 +34,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/hero', heroRoutes);
+app.use('/api/battle', battleRoutes);
 
 // 错误处理
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -44,6 +47,7 @@ const start = async () => {
   try {
     await connectMongoDB();
     await seedDatabase();
+    await seedStageConfigs();
 
     app.listen(config.server.port, () => {
       console.log('');
